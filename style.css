@@ -1,0 +1,112 @@
+
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Inter:wght@300;400;900&display=swap');
+
+        :root { --black: #050505; --white: #fff; --gray: #f0f0f0; }
+        * { box-sizing: border-box; cursor: none; }
+        body { margin: 0; background: var(--white); color: var(--black); font-family: 'Inter', sans-serif; overflow: auto; }
+
+        /* --- ВЕЛКОМ ЭКРАН (SPLASH SCREEN) --- */
+        #splash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+            background: var(--black); color: var(--white); z-index: 99999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 1.5s;
+        }
+        #splash.hidden { opacity: 0; visibility: hidden; }
+        
+        .splash-logo {
+            font-family: 'Oswald', sans-serif; font-size: 60px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 15px; animation: splashBlur 2s cubic-bezier(0.2, 1, 0.3, 1) forwards;
+            background: linear-gradient(110deg, #fff 0%, #aaa 50%, #fff 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .splash-text {
+            font-family: 'Inter', sans-serif; font-weight: 300; letter-spacing: 8px; font-size: 12px; margin-top: 20px;
+            opacity: 0; animation: splashFade 2s 1s forwards; color: #888;
+        }
+        @keyframes splashBlur { 0% { filter: blur(20px); opacity: 0; letter-spacing: 40px; transform: scale(1.2); } 100% { filter: blur(0); opacity: 1; letter-spacing: 15px; transform: scale(1); } }
+        @keyframes splashFade { to { opacity: 1; } }
+
+        /* --- КАСТОМНЫЙ КУРСОР --- */
+        #cursor-dot, #cursor-ring { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 10000; border-radius: 50%; transform: translate(-50%, -50%); }
+        #cursor-dot { width: 4px; height: 4px; background: var(--black); transition: opacity 0.2s; }
+        #cursor-ring { width: 30px; height: 30px; border: 1px solid var(--black); transition: width 0.3s, height 0.3s, border-width 0.3s, background 0.3s; }
+        .hovered-cursor #cursor-ring { width: 50px; height: 50px; background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.2); }
+        .hovered-cursor #cursor-dot { opacity: 0; }
+
+        /* --- ИКОНКИ --- */
+        svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 1.2; fill: none; stroke-linecap: square; transition: 0.3s; }
+        .nav-btn:hover svg, .click-area:hover svg { transform: scale(1.1); }
+
+        /* --- САЙДБАР --- */
+        nav { position: fixed; left: 0; top: 0; width: 80px; height: 100vh; border-right: 1px solid var(--black); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 60px; z-index: 100; background: var(--white); }
+        .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 10px; font-family: 'Oswald', sans-serif; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; transition: 0.3s; color: var(--black); }
+        .nav-btn span { writing-mode: vertical-rl; transform: rotate(180deg); }
+        .nav-btn:hover { font-weight: 700; }
+
+        /* --- ХЕДЕР --- */
+        header { position: fixed; top: 0; left: 80px; right: 0; height: 100px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 50px; z-index: 90; background: rgba(255,255,255,0.95); backdrop-filter: blur(5px); border-bottom: 1px solid var(--black); }
+        .logo-container { justify-self: start; }
+        .logo { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 40px; text-transform: uppercase; letter-spacing: 2px; transition: letter-spacing 0.5s; background: linear-gradient(110deg, #000 0%, #000 40%, #aaa 50%, #000 60%, #000 100%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fastShine 2s linear infinite; }
+        .logo:hover { letter-spacing: 12px; }
+        @keyframes fastShine { to { background-position: -200% center; } }
+        .search-container { justify-self: center; }
+        .search-bar { border: none; border-bottom: 2px solid var(--black); background: transparent; padding: 10px; width: 200px; outline: none; text-align: center; text-transform: uppercase; font-size: 14px; font-family: 'Oswald', sans-serif; font-weight: 500; letter-spacing: 2px; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .search-bar:focus { width: 400px; background: var(--black); color: var(--white); }
+        .search-bar::placeholder { color: #aaa; }
+        .sort-container { justify-self: end; }
+        .sort-btn { font-family: 'Oswald', sans-serif; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; display: flex; align-items: center; gap: 10px; transition: 0.3s; }
+        .sort-btn:hover { color: #666; }
+
+        /* --- СЕТКА ТОВАРОВ --- */
+        .main-content { margin-left: 80px; margin-top: 100px; height: calc(100vh - 100px); overflow-y: scroll; padding: 50px; }
+        .main-content::-webkit-scrollbar { width: 0; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 80px 40px; max-width: 1300px; margin: 0 auto; padding-bottom: 150px; }
+        .item { opacity: 0; transform: translateY(30px); animation: itemLoad 0.8s forwards; }
+        @keyframes itemLoad { to { opacity: 1; transform: translateY(0); } }
+        .item.hide { opacity: 0 !important; transform: scale(0.9) !important; pointer-events: none; position: absolute; }
+        .image-box { width: 100%; aspect-ratio: 3/4; background: var(--gray); margin-bottom: 15px; overflow: hidden; position: relative; transition: background 0.5s; border: 1px solid #eee; }
+        .image-inner { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-family: 'Oswald', sans-serif; font-size: 14px; color: #999; text-transform: uppercase; letter-spacing: 3px; transition: transform 0.6s cubic-bezier(0.2, 1, 0.3, 1); }
+        .item:hover .image-box { background: #e0e0e0; border-color: var(--black); }
+        .item:hover .image-inner { transform: scale(0.85); color: #000; }
+        .item-title { font-family: 'Oswald', sans-serif; font-weight: 500; font-size: 18px; margin: 0; letter-spacing: 1px; }
+        .item-price { font-size: 14px; margin: 5px 0 0; color: #444; font-weight: 300; }
+
+        /* --- ПАНЕЛИ И КНОПКИ --- */
+        .side-panel { position: fixed; right: 0; top: 0; width: 500px; height: 100vh; background: var(--white); border-left: 1px solid var(--black); z-index: 300; padding: 50px; transform: translateX(100%); transition: transform 0.6s cubic-bezier(0.2, 1, 0.3, 1); display: flex; flex-direction: column; }
+        .side-panel.active { transform: translateX(0); }
+        .panel-title { font-family: 'Oswald', sans-serif; font-size: 32px; margin: 0 0 40px 0; letter-spacing: 2px; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 15px 0; font-family: 'Oswald', sans-serif; }
+        .cart-remove { color: red; transition: 0.3s; display: flex; align-items: center; }
+        .cart-remove:hover { color: var(--black); }
+        .btn { width: 100%; padding: 20px; background: var(--black); color: var(--white); border: none; font-family: 'Oswald', sans-serif; font-size: 18px; text-transform: uppercase; letter-spacing: 3px; transition: all 0.3s ease; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; gap: 15px; }
+        .btn:hover { background: #333; letter-spacing: 6px; }
+        input.form-input { width: 100%; padding: 15px 0; margin-bottom: 30px; border: none; border-bottom: 1px solid var(--black); font-family: 'Oswald', sans-serif; text-transform: uppercase; font-size: 16px; outline: none; background: transparent; letter-spacing: 1px; }
+
+        /* --- МОДАЛКА (С 3D ЭФФЕКТОМ) --- */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--white); z-index: 200; display: none; padding: 100px; }
+        .modal-content { display: flex; gap: 100px; max-width: 1200px; margin: 0 auto; opacity: 0; transform: translateY(40px); transition: 0.6s; }
+        .modal.active .modal-content { opacity: 1; transform: translateY(0); }
+        
+        /* Настройки для 3D перспективы */
+        .modal-img-wrapper { perspective: 1200px; width: 500px; height: 650px; }
+        .modal-img { 
+            width: 100%; height: 100%; background: #eee; border: 1px solid #ddd;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Oswald', sans-serif; font-size: 30px; color: #aaa; letter-spacing: 5px;
+            transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.2, 1, 0.3, 1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        
+        .modal-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .modal-info h1 { font-family: 'Oswald', sans-serif; font-size: 60px; margin: 0 0 20px; line-height: 1; letter-spacing: 2px; }
+        .sizes { display: flex; gap: 15px; margin: 30px 0; }
+        .size-box { width: 50px; height: 50px; border: 1px solid var(--black); display: flex; align-items: center; justify-content: center; font-family: 'Oswald', sans-serif; font-size: 18px; transition: 0.3s; }
+        .size-box.active { background: var(--black); color: var(--white); }
+        .icon-close { position: absolute; top: 40px; right: 50px; transition: 0.3s; }
+
+        /* --- УВЕДОМЛЕНИЯ --- */
+        #toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: var(--black); color: var(--white); padding: 15px 30px; font-family: 'Oswald', sans-serif; letter-spacing: 2px; text-transform: uppercase; font-size: 12px; animation: slideIn 0.3s forwards, fadeOut 0.5s 2.5s forwards; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; } }

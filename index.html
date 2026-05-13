@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALJIBRIN | ARCHIVE</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ВЕЛКОМ ЭКРАН -->
+    <div id="splash">
+        <div class="splash-logo">ALJIBRIN</div>
+        <div class="splash-text" id="splash-welcome">ARCHIVE LOADING...</div>
+    </div>
+
+    <!-- КУРСОР И УВЕДОМЛЕНИЯ -->
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+    <div id="toast-container"></div>
+
+    <!-- САЙДБАР -->
+    <nav>
+        <div class="nav-btn click-area" onclick="openAuth()" id="nav-user">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21v-4h16v4"/></svg>
+            <span id="nav-user-text">ACCOUNT</span>
+        </div>
+        <div class="nav-btn click-area" onclick="toggleCart()">
+            <svg viewBox="0 0 24 24"><path d="M5 7h14l1 15H4L5 7z"/><path d="M9 7V4h6v3"/></svg>
+            <span style="font-size: 16px; margin-top: 5px; font-weight: 700;" id="cart-count">0</span>
+        </div>
+    </nav>
+
+    <!-- ХЕДЕР -->
+    <header>
+        <div class="logo-container">
+            <div class="logo click-area" onclick="location.reload()">ALJIBRIN</div>
+        </div>
+        <div class="search-container">
+            <input type="text" class="search-bar click-area" id="search" placeholder="SEARCH..." oninput="filterItems()">
+        </div>
+        <div class="sort-container">
+            <div class="sort-btn click-area" onclick="toggleSort()">
+                <svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+                <span id="sort-label">SORT: DEFAULT</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-content">
+        <div class="grid" id="shop-grid"></div>
+    </div>
+
+    <!-- МОДАЛКА (ОТКРЫТЫЙ ТОВАР) -->
+    <div id="product-modal" class="modal">
+        <div class="icon-close click-area" onclick="closeProduct()">
+            <svg viewBox="0 0 24 24" style="width: 30px; height: 30px;"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </div>
+        <div class="modal-content">
+            <!-- Блок с 3D перспективой -->
+            <div class="modal-img-wrapper click-area">
+                <div class="modal-img" id="tilt-img">VIEW PIECE</div>
+            </div>
+            
+            <div class="modal-info">
+                <p style="color: #999; font-size: 12px; letter-spacing: 5px; font-family: 'Oswald', sans-serif;">ARCHIVE EDITION</p>
+                <h1 id="m-title">ITEM NAME</h1>
+                <p style="font-weight: 300; line-height: 1.6; color: #666; max-width: 400px;">Constructed with premium distressed materials, featuring raw edges and structural silhouette. Designed for those who transcend ordinary fashion.</p>
+                <h2 id="m-price" style="font-weight: 400; margin: 20px 0; font-family: 'Oswald', sans-serif; font-size: 32px;">0 $</h2>
+                
+                <div class="sizes">
+                    <div class="size-box click-area" onclick="selectSize(this)">S</div>
+                    <div class="size-box click-area active" onclick="selectSize(this)">M</div>
+                    <div class="size-box click-area" onclick="selectSize(this)">L</div>
+                    <div class="size-box click-area" onclick="selectSize(this)">XL</div>
+                </div>
+                <button class="btn click-area" onclick="addToCart()" style="margin-top: 20px;">
+                    <svg viewBox="0 0 24 24"><path d="M5 7h14l1 15H4L5 7z"/><path d="M9 7V4h6v3"/></svg>
+                    ADD TO CART
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- КОРЗИНА И АККАУНТ (КОД ТОТ ЖЕ) -->
+    <div id="cart-panel" class="side-panel">
+        <div class="icon-close click-area" onclick="toggleCart()">
+            <svg viewBox="0 0 24 24" style="width: 30px; height: 30px;"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </div>
+        <h2 class="panel-title">CART</h2>
+        <div id="cart-items" style="flex: 1; overflow-y: auto;"></div>
+        <div style="padding-top: 30px; border-top: 2px solid var(--black);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px; font-family: 'Oswald', sans-serif; font-size: 24px;">
+                <span>TOTAL</span> <span id="cart-total">0$</span>
+            </div>
+            <button class="btn click-area">CHECKOUT</button>
+        </div>
+    </div>
+
+    <div id="auth-panel" class="side-panel">
+        <div class="icon-close click-area" onclick="openAuth()">
+            <svg viewBox="0 0 24 24" style="width: 30px; height: 30px;"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </div>
+        <div id="auth-forms">
+            <h2 class="panel-title">AUTH</h2>
+            <input type="text" id="username" class="form-input click-area" placeholder="USERNAME">
+            <input type="password" id="password" class="form-input click-area" placeholder="PASSWORD">
+            <button class="btn click-area" onclick="login()" style="margin-bottom: 10px;">LOG IN</button>
+            <button class="btn click-area" onclick="register()" style="background: var(--white); color: var(--black); border: 1px solid var(--black);">REGISTER</button>
+        </div>
+        <div id="profile-view" style="display: none;">
+            <h2 class="panel-title">USER: <br><span id="prof-name"></span></h2>
+            <button class="btn click-area" onclick="logout()">LOG OUT</button>
+        </div>
+    </div>
+    
+    
+        
+        <div id="admin-panel" style="margin-left: 80px; padding: 50px; border-top: 1px solid #000; background: #fafafa;">
+        <h2 style="font-family: 'Oswald'; letter-spacing: 4px;">ADD NEW PIECE</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 800px;">
+            <input type="text" id="adm-title" placeholder="TITLE (e.g. Rick Owens Jacket)" class="form-input">
+            <input type="number" id="adm-price" placeholder="PRICE ($)" class="form-input">
+            <input type="text" id="adm-img" placeholder="IMAGE URL" class="form-input">
+            <input type="text" id="adm-tags" placeholder="TAGS (comma separated)" class="form-input">
+            <textarea id="adm-desc" placeholder="DESCRIPTION" class="form-input" style="grid-column: 1/-1; height: 100px;"></textarea>
+            <button onclick="uploadProduct()" class="btn" style="grid-column: 1/-1;">PUBLISH TO ARCHIVE</button>
+        </div>
+    </div>
+    <script type="module" src="script.js"></script>
+</body>
+</html>
