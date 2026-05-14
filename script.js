@@ -6,6 +6,19 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+import { 
+    getAuth, 
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword, 
+    GoogleAuthProvider, 
+    signInWithPopup, 
+    signOut, 
+    onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+
+
+
 const firebaseConfig = {
   apiKey: "AIzaSyCJbqhmAYdpod5VVxbQzzZ0cCPHcBxYUVE",
   authDomain: "aljibrin-archive.firebaseapp.com",
@@ -17,12 +30,17 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider()
 
+
+let itemsToShow = 12; // Сколько айтемов показывать за раз
+let observer = null;  // Объект наблюдателя
 let cart = [];
 let originalProducts = [];
 let currentProducts = [];
 let currentItem = null;
-let selectedSize = 'M';
+window.selectedSize = 'M';
 let sortMode = 0;
 const sortLabels = ['SORT: DEFAULT', 'PRICE: ↑', 'PRICE: ↓'];
 
@@ -34,6 +52,9 @@ let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0, lastTime = 0;
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     loadCart();
+
+    showSkeletons();
+
     loadProductsFromCloud();
     requestAnimationFrame(renderCursor);
     
@@ -82,13 +103,39 @@ async function loadProductsFromCloud() {
     } catch (e) { console.error(e); showToast("DATABASE ERROR"); }
 }
 
+// Функция для настройки бесконечного скролла
+function setupInfiniteScroll() {
+    // Если старый наблюдатель есть, отключаем его
+    if (observer) observer.disconnect();
+
+    // Создаем новый наблюдатель
+    observer = new IntersectionObserver((entries) => {
+        // Если последний элемент в сетке появился в зоне видимости
+        if (entries[0].isIntersecting) {
+            // Если у нас еще есть товары в очереди на показ
+            if (currentProducts.length > itemsToShow) {
+                const nextBatch = currentProducts.slice(itemsToShow, itemsToShow + 12);
+                itemsToShow += 12;
+                renderGrid(nextBatch, false, true); // Догружаем следующую пачку (append=true)
+            }
+        }
+    }, { threshold: 0.1 });
+
+    // Ищем все карточки товаров
+    const items = document.querySelectorAll('.item');
+    if (items.length > 0) {
+        // Следим за самой последней карточкой
+        observer.observe(items[items.length - 1]);
+    }
+}
+
 // --- 3. РЕНДЕР И ПОИСК ---
-function renderGrid(arr, isSuggestion = false) {
+function renderGrid(arr, isSuggestion = false, append = false) {
     const grid = document.getElementById('shop-grid');
     if (!grid) return;
 
-    // Если массив пустой и это НЕ предложение похожих товаров
-    if (arr.length === 0 && !isSuggestion) {
+    // 1. Обработка полной пустоты (только если мы не догружаем айтемы скроллом)
+    if (arr.length === 0 && !isSuggestion && !append) {
         grid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; padding: 100px; opacity: 0.5;">
                 <div style="font-family:'Oswald'; font-size: 24px; letter-spacing: 4px;">NOTHING FOUND</div>
@@ -97,11 +144,10 @@ function renderGrid(arr, isSuggestion = false) {
         return;
     }
 
-    // Формируем HTML
     let html = "";
 
-    // Если это блок с подсказками "Возможно вы имели в виду"
-    if (isSuggestion && arr.length > 0) {
+    // 2. Если это подсказка "Возможно вы имели в виду" (рисуем заголовок)
+    if (isSuggestion && arr.length > 0 && !append) {
         html += `
             <div style="grid-column: 1/-1; text-align: center; margin-bottom: 40px;">
                 <div style="font-family:'Oswald'; font-size: 24px; letter-spacing: 4px; opacity: 0.5; margin-bottom: 10px;">NOTHING FOUND</div>
@@ -109,20 +155,30 @@ function renderGrid(arr, isSuggestion = false) {
             </div>`;
     }
 
-    html += arr.map((p, i) => `
-        <div class="item click-area" data-search="${p.searchData}" style="animation-delay: ${i * 0.02}s" onclick="openProduct('${p.id}')">
-            <div class="image-box" style="background-image: url('${p.img}'); background-size: cover; background-position: center;">
+    // 3. Генерация самих карточек
+ html += arr.map((p, i) => `
+    <div class="item click-area" onclick="openProduct('${p.id}')" style="animation-delay: ${i * 0.05}s">
+        <div class="item-wrapper"> <div class="image-box" style="background-image: url('${p.img}'); background-size: cover; background-position: center;">
                 <div class="image-inner">${p.img ? '' : 'View Piece'}</div>
             </div>
             <p class="item-title">${p.title}</p>
             <p class="item-price">${p.price} $</p>
         </div>
-    `).join('');
+    </div>
+`).join('');
 
-    grid.innerHTML = html;
-    
-    // Привязываем курсор к новым элементам
+    // 4. Вставка в DOM
+    if (append) {
+        grid.insertAdjacentHTML('beforeend', html); // Добавляем в конец
+    } else {
+        grid.innerHTML = html; // Стираем старое и пишем новое
+    }
+
+    // 5. Обслуживание (курсор и запуск слежки для бесконечного скролла)
     if (typeof bindCursorHover === 'function') bindCursorHover();
+    
+    // Важно: всегда следим за ПОСЛЕДНИМ элементом в сетке
+    setupInfiniteScroll(); 
 }
 
 window.filterItems = (showLog = false) => {
@@ -157,22 +213,34 @@ window.filterItems = (showLog = false) => {
     }
 };
 
+
+
+
+
+
+
 // --- 4. МОДАЛКА И ССЫЛКИ ---
 window.openProduct = (id) => {
     currentItem = originalProducts.find(p => p.id === id);
     if (!currentItem) return;
+
+    // --- ДОБАВЬ ЭТОТ БЛОК ДЛЯ СБРОСА РАЗМЕРОВ ---
+    window.selectedSize = 'M'; // Сбрасываем в коде на дефолт
+    document.querySelectorAll('.size-box').forEach(box => {
+        box.classList.remove('active'); // Убираем подсветку со всех
+        if(box.innerText === 'M') box.classList.add('active'); // Подсвечиваем только M
+    });
+    // --------------------------------------------
 
     document.getElementById('m-title').innerText = currentItem.title;
     document.getElementById('m-price').innerText = currentItem.price + ' $';
     
     const img = document.getElementById('tilt-img');
     if (img) {
-        // Устанавливаем картинку фоном и очищаем текст "VIEW PIECE"
         img.style.backgroundImage = `url('${currentItem.img}')`;
         img.style.backgroundSize = 'cover';
         img.style.backgroundPosition = 'center';
-        img.innerText = ''; // Убираем текст внутри блока
-        img.style.transform = 'rotateX(0deg) rotateY(0deg)'; // Сброс наклона
+        img.innerText = ''; 
     }
 
     const modal = document.getElementById('product-modal');
@@ -182,12 +250,24 @@ window.openProduct = (id) => {
 
 // --- 5. КОРЗИНА ---
 window.addToCart = () => {
-    const existing = cart.find(i => i.id === currentItem.id && i.size === selectedSize);
-    if (existing) existing.qty++;
-    else cart.push({ ...currentItem, size: selectedSize, qty: 1 });
+    if (!currentItem) return;
+
+    // Сравниваем ID и размер из window
+    const existing = cart.find(i => i.id === currentItem.id && i.size === window.selectedSize);
+
+    if (existing) {
+        existing.qty++;
+    } else {
+        cart.push({ 
+            ...currentItem, 
+            size: window.selectedSize, 
+            qty: 1 
+        });
+    }
+
     saveCart();
     updateCartUI();
-    showToast('ADDED TO ARCHIVE');
+    showToast(`ADDED ${window.selectedSize} TO ARCHIVE`);
     window.closeProduct();
 };
 
@@ -230,6 +310,11 @@ function updateCartUI() {
 // --- 6. ИНТЕРФЕЙС И КУРСОР ---
 window.toggleCart = () => document.getElementById('cart-panel').classList.toggle('active');
 window.openAuth = () => document.getElementById('auth-panel').classList.toggle('active');
+/** Закрыть боковую панель аккаунта (после успешного входа и т.п.) */
+window.toggleAuth = () => {
+    const panel = document.getElementById('auth-panel');
+    if (panel?.classList.contains('active')) panel.classList.remove('active');
+};
 
 window.toggleSort = () => {
     sortMode = (sortMode + 1) % 3;
@@ -242,10 +327,15 @@ window.toggleSort = () => {
 };
 
 window.selectSize = (el) => {
-    document.querySelectorAll('.size-box').forEach(b => b.classList.remove('active'));
+    // 1. Снимаем активный класс (рамку) со всех кнопок
+    document.querySelectorAll('.size-box').forEach(box => {
+        box.classList.remove('active');
+    });
+    // 2. Добавляем активный класс той, на которую нажали
     el.classList.add('active');
-    selectedSize = el.innerText;
-    showToast(`SIZE: ${selectedSize}`);
+    // 3. ЗАПИСЫВАЕМ ТЕКСТ КНОПКИ В ПЕРЕМЕННУЮ
+    selectedSize = el.innerText.trim();
+    console.log("Размер выбран:", selectedSize);
 };
 
 function renderCursor(time) {
@@ -272,27 +362,49 @@ function bindCursorHover() {
 
 // --- 7. АВТОРИЗАЦИЯ ---
 window.login = () => {
-    const u = document.getElementById('username').value.trim();
-    const p = document.getElementById('password').value;
-    if (localStorage.getItem(`aljbrin_pass_${u}`) === p) {
-        localStorage.setItem('aljbrin_user', u);
-        localStorage.setItem('aljbrin_logged_in', 'true');
-        location.reload();
-    } else showToast('ACCESS DENIED');
+    const user = document.getElementById('username').value.trim();
+    const pass = document.getElementById('password').value;
+
+    // ХЕШИРУЕМ ВВЕДЕННЫЙ ПАРОЛЬ ДЛЯ СРАВНЕНИЯ
+    const hashedPass = CryptoJS.SHA256(pass).toString();
+
+    const users = JSON.parse(localStorage.getItem('archive_users') || '[]');
+    const found = users.find(u => u.username === user && u.password === hashedPass);
+
+    if (found) {
+        localStorage.setItem('archive_session', user);
+        checkAuth();
+        showToast("WELCOME BACK");
+        toggleAuth();
+    } else {
+        showToast("WRONG USER OR PASS");
+    }
 };
 
 window.register = () => {
-    const u = document.getElementById('username').value.trim();
-    const p = document.getElementById('password').value;
-    if (u.length < 3) return showToast('NAME TOO SHORT');
-    localStorage.setItem(`aljbrin_pass_${u}`, p);
-    showToast('REGISTERED. PLEASE LOG IN.');
+    const user = document.getElementById('username').value.trim();
+    const pass = document.getElementById('password').value;
+
+    if (user.length < 3 || pass.length < 5) {
+        showToast("TOO SHORT");
+        return;
+    }
+
+    // ХЕШИРУЕМ ПАРОЛЬ
+    const hashedPass = CryptoJS.SHA256(pass).toString();
+
+    const users = JSON.parse(localStorage.getItem('archive_users') || '[]');
+    if (users.find(u => u.username === user)) {
+        showToast("USER ALREADY EXISTS");
+        return;
+    }
+
+    users.push({ username: user, password: hashedPass });
+    localStorage.setItem('archive_users', JSON.stringify(users));
+    showToast("SUCCESSFULLY REGISTERED");
 };
 
-window.logout = () => {
-    localStorage.removeItem('aljbrin_logged_in');
-    location.reload();
-};
+
 
 function checkAuth() {
     const isLogged = localStorage.getItem('aljbrin_logged_in') === 'true';
@@ -426,9 +538,117 @@ window.closeProduct = () => {
     window.history.pushState({}, '', window.location.pathname);
 };
 
-// Функция выбора размера (чтобы не было аналогичной ошибки)
-window.selectSize = (el) => {
-    document.querySelectorAll('.size-box').forEach(b => b.classList.remove('active'));
-    el.classList.add('active');
-    // Можно сохранить выбранный размер в переменную, если нужно
+
+function showSkeletons() {
+    const grid = document.getElementById('shop-grid');
+    if (!grid) return;
+    
+    // Создаем 6 временных карточек-заглушек
+    grid.innerHTML = Array(6).fill(0).map(() => `
+        <div class="skeleton-card">
+            <div class="skeleton-img skeleton"></div>
+            <div class="skeleton-text skeleton"></div>
+            <div class="skeleton-price skeleton"></div>
+        </div>
+    `).join('');
+}
+
+
+
+// 2. Следим за состоянием юзера (Firebase). В разметке блок форм — #auth-forms (не #auth-view).
+onAuthStateChanged(auth, (user) => {
+    const authForms = document.getElementById('auth-forms');
+    const profileView = document.getElementById('profile-view');
+
+    const splashMsg = document.getElementById('splash-message');
+    const navText = document.getElementById('nav-user-text');
+    const profName = document.getElementById('prof-name');
+
+    if (user) {
+        const name = (user.displayName || user.email.split('@')[0]).toUpperCase();
+
+        if (authForms) authForms.style.display = 'none';
+        if (profileView) profileView.style.display = 'block';
+
+        localStorage.setItem('aljbrin_logged_in', 'true');
+        localStorage.setItem('aljibrin_user', name);
+
+        if (splashMsg) {
+            splashMsg.innerHTML = `WELCOME<span style="display:block; margin-top:8px; opacity:0.7;">DEAR ${name}</span>`;
+        }
+        if (navText) navText.innerText = name;
+        if (profName) profName.innerText = name;
+
+        loadCart();
+    } else {
+        if (authForms) authForms.style.display = 'block';
+        if (profileView) profileView.style.display = 'none';
+
+        localStorage.removeItem('aljbrin_logged_in');
+        localStorage.removeItem('aljibrin_user');
+
+        if (splashMsg) {
+            splashMsg.innerHTML = "ARCHIVE LOADING...";
+        }
+        if (navText) navText.innerText = "ACCOUNT";
+
+        loadCart();
+    }
+
+    const splash = document.getElementById('splash');
+    if (splash) {
+        setTimeout(() => splash.classList.add('hidden'), 3000);
+    }
+});
+
+// ЕДИНЫЙ ЛОГАУТ (ВМЕСТО ДВУХ СТАРЫХ)
+window.logout = () => {
+    signOut(auth).then(() => {
+        localStorage.removeItem('aljbrin_logged_in');
+        localStorage.removeItem('aljibrin_user');
+        showToast("SIGNED OUT");
+        setTimeout(() => location.reload(), 500);
+    });
 };
+
+// 3. Логин и Регистрация через Email
+window.handleEmailAuth = async (type) => {
+    const email = document.getElementById('email').value;
+    const pass = document.getElementById('password').value;
+
+    try {
+        if (type === 'register') {
+            await createUserWithEmailAndPassword(auth, email, pass);
+            showToast("ACCOUNT CREATED");
+        } else {
+            await signInWithEmailAndPassword(auth, email, pass);
+            showToast("WELCOME BACK");
+        }
+        toggleAuth(); // Закрыть панель
+    } catch (error) {
+        showToast(error.message.replace("Firebase: ", ""));
+    }
+};
+
+// 4. Вход через Google
+window.loginWithGoogle = async () => {
+    try {
+        // Вызываем окно авторизации ПЕРВЫМ делом, сразу после клика
+        const result = await signInWithPopup(auth, googleProvider);
+        
+        // Только если вход успешен, делаем всё остальное
+        showToast("SIGNED IN SUCCESS");
+        console.log("User:", result.user);
+        
+        // Если у тебя была функция скрытия меню, вызывай её в конце
+        if (typeof toggleAuth === 'function') toggleAuth();
+        
+    } catch (error) {
+        // Если юзер сам закрыл окно, не спамим ошибкой
+        if (error.code === 'auth/popup-closed-by-user') return;
+        
+        console.error("Auth Error:", error.code);
+        showToast("AUTH ERROR");
+    }
+};
+// 5. Выход

@@ -1,6 +1,12 @@
 
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Inter:wght@300;400;900&display=swap');
 
+        @property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
         :root { --black: #050505; --white: #fff; --gray: #f0f0f0; }
         * { box-sizing: border-box; cursor: none; }
         body { margin: 0; background: var(--white); color: var(--black); font-family: 'Inter', sans-serif; overflow: auto; }
@@ -62,12 +68,69 @@
         .main-content { margin-left: 80px; margin-top: 100px; height: calc(100vh - 100px); overflow-y: scroll; padding: 50px; }
         .main-content::-webkit-scrollbar { width: 0; }
         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 80px 40px; max-width: 1300px; margin: 0 auto; padding-bottom: 150px; }
-        .item { opacity: 0; transform: translateY(30px); animation: itemLoad 0.8s forwards; }
+       .item { 
+            opacity: 0; 
+            transform: translateY(30px); 
+            animation: itemLoad 0.8s forwards; 
+            position: relative;
+            padding: 30px; /* Отступ, чтобы бордеру было где "бегать" */
+            transition: transform 1.6s cubic-bezier(0.2, 1, 0.3, 1); 
+            will-change: transform;
+            
+}
+
+/* Увеличение при наведении */
+        .item:hover {
+            transform: translateY(0) scale(1.05) !important;
+        }
+        /* Создаем эффект змейки через псевдоэлемент */
+     .item::after {
+    content: '';
+    position: absolute;
+    /* inset: 0 сделает змейку точно по краю. 
+       Если хочешь, чтобы она была чуть внутри, поставь 2px */
+    inset: 0px; 
+    border: 1px solid transparent;
+    
+    /* Увеличим градиент, чтобы он точно захватывал все углы */
+    background: conic-gradient(from var(--angle), transparent 70%, #000 100%) border-box;
+    
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: destination-out;
+    mask-composite: exclude;
+    
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+    
+    /* Важно: змейка должна быть выше картинки */
+    z-index: 10; 
+}
+
+        /* При наведении включаем бордер и запускаем вращение */
+        .item:hover::after {
+            opacity: 1;
+            animation: spin 5s linear infinite;
+        }
+
+        .item-wrapper {
+        width: 100%;
+        height: 100%;
+        transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1); /* Очень длинная и плавная инерция */
+        will-change: transform;
+}   
+        .item:hover .item-wrapper {
+            transform: scale(1.05);
+}
+        @keyframes spin {
+            to { --angle: 360deg; }
+        }
+        
         @keyframes itemLoad { to { opacity: 1; transform: translateY(0); } }
         .item.hide { opacity: 0 !important; transform: scale(0.9) !important; pointer-events: none; position: absolute; }
-        .image-box { width: 100%; aspect-ratio: 3/4; background: var(--gray); margin-bottom: 15px; overflow: hidden; position: relative; transition: background 0.5s; border: 1px solid #eee; }
+        .image-box { width: 100%; aspect-ratio: 3/4; background: var(--gray); margin-bottom: 15px; overflow: hidden; position: relative; transition: background 0.5s; border: none; }
         .image-inner { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-family: 'Oswald', sans-serif; font-size: 14px; color: #999; text-transform: uppercase; letter-spacing: 3px; transition: transform 0.6s cubic-bezier(0.2, 1, 0.3, 1); }
-        .item:hover .image-box { background: #e0e0e0; border-color: var(--black); }
+        .item:hover .image-box { background: #e0e0e0;}
         .item:hover .image-inner { transform: scale(0.85); color: #000; }
         .item-title { font-family: 'Oswald', sans-serif; font-weight: 500; font-size: 18px; margin: 0; letter-spacing: 1px; }
         .item-price { font-size: 14px; margin: 5px 0 0; color: #444; font-weight: 300; }
@@ -110,3 +173,35 @@
         .toast { background: var(--black); color: var(--white); padding: 15px 30px; font-family: 'Oswald', sans-serif; letter-spacing: 2px; text-transform: uppercase; font-size: 12px; animation: slideIn 0.3s forwards, fadeOut 0.5s 2.5s forwards; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes fadeOut { to { opacity: 0; } }
+
+        /* Эффект скелетона */
+.skeleton {
+    background: #f0f0f0;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 2px;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Заглушка для карточки */
+.skeleton-card {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.skeleton-img { height: 400px; width: 100%; }
+.skeleton-text { height: 20px; width: 60%; }
+.skeleton-price { height: 15px; width: 30%; }
+
+.image-box {
+    background-color: #f9f9f9; /* Цвет фона, пока картинка грузится */
+    transition: opacity 0.3s ease;
+}
